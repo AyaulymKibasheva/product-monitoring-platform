@@ -3,4 +3,4 @@ Add-Content .gitignore ".venv/"
 Add-Content .gitignore "__pycache__/"
 Add-Content .gitignore "*.pyc"
 Add-Content .gitignore ".env"
-Add-Content .gitignore "logs/*.log"
+Add-Content .gitignore "logs/*.log".idea/
