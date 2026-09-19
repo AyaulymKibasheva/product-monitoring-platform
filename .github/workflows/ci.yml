@@ -19,8 +19,6 @@ jobs:
         run: ruff check .
       - name: Type check
         run: mypy src
-      - name: Collect tests
-        run: pytest --collect-only -q --no-cov
       - name: Core tests
         run: pytest -q --no-cov tests/test_normalization.py tests/test_validation.py tests/test_change_detection.py tests/test_matching.py
       - name: Source adapter tests
