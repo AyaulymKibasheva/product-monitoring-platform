@@ -19,8 +19,14 @@ jobs:
         run: ruff check .
       - name: Type check
         run: mypy src
-      - name: Core tests
-        run: pytest -q --no-cov tests/test_normalization.py tests/test_validation.py tests/test_change_detection.py tests/test_matching.py
+      - name: Normalization tests
+        run: pytest -q --no-cov tests/test_normalization.py
+      - name: Validation tests
+        run: pytest -q --no-cov tests/test_validation.py
+      - name: Change detection tests
+        run: pytest -q --no-cov tests/test_change_detection.py
+      - name: Matching tests
+        run: pytest -q --no-cov tests/test_matching.py
       - name: Source adapter tests
         run: pytest -q --no-cov tests/test_books_scraper.py tests/test_dummyjson_source.py tests/test_file_source.py tests/test_javascript_source.py tests/test_source_registry.py tests/test_source_catalog.py
       - name: Persistence and feature tests
