@@ -39,6 +39,7 @@ def build_registry(catalog: SourceCatalog) -> SourceRegistry:
     from .html.books_demo import BooksDemoSource
     from .api.dummyjson import DummyJsonSource
     from .api.bestbuy import BestBuySource
+    from .api.steam import SteamStoreSource
     from .javascript.scraping_sandbox import ScrapingSandboxSource
     from .file.catalog_file import CatalogFileSource
 
@@ -69,6 +70,22 @@ def build_registry(catalog: SourceCatalog) -> SourceRegistry:
             base_url=_required_url(definition),
             api_key_env=str(definition.settings.get("api_key_env", "BESTBUY_API_KEY")),
             page_size=int(definition.settings.get("page_size", 50)),
+            timeout_seconds=definition.timeout_seconds,
+            max_retries=definition.max_retries,
+            backoff_factor=definition.backoff_factor,
+            delay_seconds=definition.request_delay_seconds,
+        ),
+        "steam_store": lambda definition: SteamStoreSource(
+            organization_id=definition.organization_id,
+            source_id=definition.source_id,
+            base_url=_required_url(definition),
+            country_code=str(definition.settings.get("country_code", "us")),
+            language=str(definition.settings.get("language", "en")),
+            sections=tuple(
+                definition.settings.get(
+                    "sections", ["specials", "top_sellers", "new_releases"]
+                )
+            ),
             timeout_seconds=definition.timeout_seconds,
             max_retries=definition.max_retries,
             backoff_factor=definition.backoff_factor,

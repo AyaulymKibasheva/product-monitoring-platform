@@ -2,8 +2,9 @@
 
 from .bestbuy import BestBuySource
 from .dummyjson import DummyJsonSource
+from .steam import SteamStoreSource
 
-__all__ = ["BestBuySource", "DummyJsonSource"]
+__all__ = ["BestBuySource", "DummyJsonSource", "SteamStoreSource"]
 
 from .dummyjson import DummyJsonSource
 

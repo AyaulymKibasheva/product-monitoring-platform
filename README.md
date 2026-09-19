@@ -115,6 +115,7 @@ The repository includes safe demonstration adapters:
 | Books to Scrape | HTML | Pagination and page parsing |
 | DummyJSON | REST API | Paginated structured data |
 | Best Buy Products API | Live retail API | Near-real-time prices and availability |
+| Steam Store | Live public API | Regional prices and discounts without a key |
 | Scraping Sandbox | JavaScript | Browser-rendered infinite scrolling |
 | Supplier file | CSV/XML | Local or supplier catalogue ingestion |
 
@@ -144,6 +145,20 @@ The key is read only from the environment. The adapter imports actual retail
 SKUs, regular and sale prices, online availability, brand, category, ratings,
 images, UPC, model, and color. The source is inactive by default so deployments
 without a key continue to work normally.
+
+### Test immediately with live Steam prices
+
+The `steam-live` source requires no account or API key and is enabled by
+default. It imports current featured, top-selling, and discounted products with
+regional prices:
+
+```bash
+python main.py --source steam-live --max-pages 1
+```
+
+Change `country_code` in `config/sources.json` to monitor another regional
+store. Steam data is used as a live integration demonstration; production use
+should follow Steam's applicable terms and rate limits.
 
 Organizations and sources are declared in `config/sources.json`. Each source
 controls its adapter, type, URL, currency, schedule, timeout, retries, rate
