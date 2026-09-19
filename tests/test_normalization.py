@@ -7,6 +7,7 @@ from src.models import Availability
 from src.normalization import (
     normalize_availability,
     normalize_datetime,
+    normalize_measurement,
     normalize_price,
     normalize_product,
     normalize_rating,
@@ -38,6 +39,24 @@ def test_normalize_common_values() -> None:
     assert normalize_url("/Item?q=1#details", "HTTPS://Example.TEST/base/") == (
         "https://example.test/Item?q=1"
     )
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("1 kg", "1000 g"),
+        ("1 200 г", "1200 g"),
+        ("500 mg", "0.5 g"),
+        ("2,5 cm", "25 mm"),
+        ("1 litre", "1000 ml"),
+        ("2 in", "50.8 mm"),
+        ("10 x 20 cm", "10 x 20 cm"),
+        ("Blue", "Blue"),
+        (None, None),
+    ],
+)
+def test_normalize_measurement(raw, expected) -> None:
+    assert normalize_measurement(raw) == expected
     assert normalize_datetime("2026-01-01T03:00:00+03:00") == datetime(
         2026, 1, 1, tzinfo=timezone.utc
     )
@@ -89,7 +108,7 @@ def test_extended_product_fields_are_normalized() -> None:
         review_count="12",
         url="https://example.test/x-1",
         image_url="/images/x-1.jpg",
-        attributes={" Color ": " Blue "},
+        attributes={" Color ": " Blue ", " Weight ": " 1 kg "},
         base_url="https://example.test/",
     )
 
@@ -100,7 +119,7 @@ def test_extended_product_fields_are_normalized() -> None:
     assert product.quantity == 7
     assert product.review_count == 12
     assert product.image_url == "https://example.test/images/x-1.jpg"
-    assert product.attributes == {"Color": "Blue"}
+    assert product.attributes == {"Color": "Blue", "Weight": "1000 g"}
 
 
 @pytest.mark.parametrize("value", ["not-a-number", "-1", None])

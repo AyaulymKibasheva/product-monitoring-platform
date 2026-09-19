@@ -15,6 +15,36 @@ from src.models import Availability, Product
 CURRENCY_SYMBOLS = {"$": "USD", "£": "GBP", "€": "EUR", "¥": "JPY"}
 CURRENCY_CODES = frozenset({"USD", "GBP", "EUR", "JPY", "KZT", "RUB"})
 
+# Simple scalar measurements are converted to stable base units. Complex values
+# such as dimensions remain text so an adapter can preserve their exact meaning.
+MEASUREMENT_UNITS: dict[str, tuple[str, Decimal]] = {
+    "mg": ("g", Decimal("0.001")),
+    "мг": ("g", Decimal("0.001")),
+    "g": ("g", Decimal("1")),
+    "гр": ("g", Decimal("1")),
+    "г": ("g", Decimal("1")),
+    "kg": ("g", Decimal("1000")),
+    "кг": ("g", Decimal("1000")),
+    "oz": ("g", Decimal("28.349523125")),
+    "lb": ("g", Decimal("453.59237")),
+    "lbs": ("g", Decimal("453.59237")),
+    "mm": ("mm", Decimal("1")),
+    "мм": ("mm", Decimal("1")),
+    "cm": ("mm", Decimal("10")),
+    "см": ("mm", Decimal("10")),
+    "m": ("mm", Decimal("1000")),
+    "метр": ("mm", Decimal("1000")),
+    "in": ("mm", Decimal("25.4")),
+    "inch": ("mm", Decimal("25.4")),
+    "ft": ("mm", Decimal("304.8")),
+    "ml": ("ml", Decimal("1")),
+    "мл": ("ml", Decimal("1")),
+    "l": ("ml", Decimal("1000")),
+    "л": ("ml", Decimal("1000")),
+    "liter": ("ml", Decimal("1000")),
+    "litre": ("ml", Decimal("1000")),
+}
+
 
 def normalize_text(value: Any, *, required: bool = False) -> str | None:
     if value is None:
@@ -182,6 +212,34 @@ def normalize_optional_integer(value: Any, *, field: str) -> int | None:
     return number
 
 
+def normalize_measurement(value: Any) -> str | None:
+    """Normalize one numeric measurement while preserving non-measurement text."""
+    text = normalize_text(value)
+    if text is None:
+        return None
+    match = re.fullmatch(
+        r"([+-]?(?:\d+(?:[\s\u00a0]\d{3})*|\d+)(?:[.,]\d+)?)\s*([\w]+)",
+        text,
+        flags=re.UNICODE,
+    )
+    if match is None:
+        return text
+    unit = match.group(2).casefold()
+    definition = MEASUREMENT_UNITS.get(unit)
+    if definition is None:
+        return text
+    try:
+        number = Decimal(match.group(1).replace(" ", "").replace("\u00a0", "").replace(",", "."))
+    except InvalidOperation:
+        return text
+    base_unit, multiplier = definition
+    normalized = number * multiplier
+    formatted = format(normalized.normalize(), "f")
+    if "." in formatted:
+        formatted = formatted.rstrip("0").rstrip(".")
+    return f"{formatted} {base_unit}"
+
+
 def normalize_attributes(value: Any) -> dict[str, str] | None:
     if value is None:
         return None
@@ -190,7 +248,7 @@ def normalize_attributes(value: Any) -> dict[str, str] | None:
     result: dict[str, str] = {}
     for raw_key, raw_value in value.items():
         key = normalize_text(raw_key)
-        item = normalize_text(raw_value)
+        item = normalize_measurement(raw_value)
         if key and item:
             result[key] = item
     return result or None

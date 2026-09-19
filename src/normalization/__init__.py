@@ -4,6 +4,7 @@ from .product import (
     normalize_availability,
     normalize_category,
     normalize_datetime,
+    normalize_measurement,
     normalize_price,
     normalize_product,
     normalize_rating,
@@ -15,10 +16,10 @@ __all__ = [
     "normalize_availability",
     "normalize_category",
     "normalize_datetime",
+    "normalize_measurement",
     "normalize_price",
     "normalize_product",
     "normalize_rating",
     "normalize_text",
     "normalize_url",
 ]
-

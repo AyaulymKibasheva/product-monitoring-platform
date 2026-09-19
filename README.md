@@ -81,8 +81,10 @@ successful source timestamp.
 
 Prices such as `$1,299.99`, `1299.99 USD`, and `1 299,99` are converted to a
 `Decimal` value plus an ISO currency code. Availability uses the stable values
-`in_stock`, `out_of_stock`, or `unknown`; ratings use a 0–5 scale; URLs are
-absolute and fragment-free; and timestamps are timezone-aware UTC values.
+`in_stock`, `out_of_stock`, `preorder`, `discontinued`, or `unknown`; ratings
+use a 0–5 scale; URLs are absolute and fragment-free; and timestamps are
+timezone-aware UTC values. Simple measurements in attributes are converted to
+stable base units (`g`, `mm`, and `ml`) while complex source text is preserved.
 
 ## Run
 
