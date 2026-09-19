@@ -39,77 +39,77 @@ class ProductRepository:
     def sync_catalog(self, catalog: SourceCatalog) -> None:
         self._catalog = catalog
         with Session(self.engine) as session, session.begin():
-            for item in catalog.organizations:
-                row = session.get(OrganizationRow, item.organization_id)
-                if row is None:
-                    row = OrganizationRow(organization_id=item.organization_id)
-                    session.add(row)
-                row.name = item.name
-                row.active = item.active
-                row.monitoring_settings = item.monitoring_settings
-                self._sync_notification_configuration(session, item)
+            for organization in catalog.organizations:
+                organization_row = session.get(OrganizationRow, organization.organization_id)
+                if organization_row is None:
+                    organization_row = OrganizationRow(organization_id=organization.organization_id)
+                    session.add(organization_row)
+                organization_row.name = organization.name
+                organization_row.active = organization.active
+                organization_row.monitoring_settings = organization.monitoring_settings
+                self._sync_notification_configuration(session, organization)
 
-            for item in catalog.sources:
-                row = session.get(SourceRow, item.source_id)
-                if row is None:
-                    row = SourceRow(
-                        source_id=item.source_id,
-                        organization_id=item.organization_id,
-                        last_success_at=item.last_success_at,
+            for source_definition in catalog.sources:
+                source_row = session.get(SourceRow, source_definition.source_id)
+                if source_row is None:
+                    source_row = SourceRow(
+                        source_id=source_definition.source_id,
+                        organization_id=source_definition.organization_id,
+                        last_success_at=source_definition.last_success_at,
                     )
-                    session.add(row)
-                row.organization_id = item.organization_id
-                row.name = item.name
-                row.source_type = item.source_type.value
-                row.adapter = item.adapter
-                row.base_url = item.base_url
-                row.default_currency = item.default_currency
-                row.schedule = item.schedule
-                row.timeout_seconds = Decimal(str(item.timeout_seconds))
-                row.max_retries = item.max_retries
-                row.backoff_factor = Decimal(str(item.backoff_factor))
-                row.delay_seconds = Decimal(str(item.delay_seconds))
-                row.requests_per_second = (
-                    Decimal(str(item.requests_per_second))
-                    if item.requests_per_second is not None
+                    session.add(source_row)
+                source_row.organization_id = source_definition.organization_id
+                source_row.name = source_definition.name
+                source_row.source_type = source_definition.source_type.value
+                source_row.adapter = source_definition.adapter
+                source_row.base_url = source_definition.base_url
+                source_row.default_currency = source_definition.default_currency
+                source_row.schedule = source_definition.schedule
+                source_row.timeout_seconds = Decimal(str(source_definition.timeout_seconds))
+                source_row.max_retries = source_definition.max_retries
+                source_row.backoff_factor = Decimal(str(source_definition.backoff_factor))
+                source_row.delay_seconds = Decimal(str(source_definition.delay_seconds))
+                source_row.requests_per_second = (
+                    Decimal(str(source_definition.requests_per_second))
+                    if source_definition.requests_per_second is not None
                     else None
                 )
-                row.active = item.active
-                if item.last_success_at is not None:
-                    row.last_success_at = item.last_success_at
-                row.settings = item.settings
-                row.monitoring_settings = item.monitoring_settings
+                source_row.active = source_definition.active
+                if source_definition.last_success_at is not None:
+                    source_row.last_success_at = source_definition.last_success_at
+                source_row.settings = source_definition.settings
+                source_row.monitoring_settings = source_definition.monitoring_settings
 
     @staticmethod
     def _sync_notification_configuration(session: Session, organization) -> None:
         for item in organization.notification_channels:
             channel_id = str(item["id"])
-            row = session.get(NotificationChannelRow, channel_id)
-            if row is None:
-                row = NotificationChannelRow(channel_id=channel_id, organization_id=organization.organization_id)
-                session.add(row)
-            row.organization_id = organization.organization_id
-            row.name = str(item.get("name", channel_id))
-            row.channel_type = str(item["type"]).casefold()
-            row.recipient = item.get("recipient")
-            row.settings = dict(item.get("settings", {}))
-            row.active = bool(item.get("active", True))
+            channel_row = session.get(NotificationChannelRow, channel_id)
+            if channel_row is None:
+                channel_row = NotificationChannelRow(channel_id=channel_id, organization_id=organization.organization_id)
+                session.add(channel_row)
+            channel_row.organization_id = organization.organization_id
+            channel_row.name = str(item.get("name", channel_id))
+            channel_row.channel_type = str(item["type"]).casefold()
+            channel_row.recipient = item.get("recipient")
+            channel_row.settings = dict(item.get("settings", {}))
+            channel_row.active = bool(item.get("active", True))
         for item in organization.notification_rules:
             rule_id = str(item["id"])
-            row = session.get(NotificationRuleRow, rule_id)
-            if row is None:
-                row = NotificationRuleRow(rule_id=rule_id, organization_id=organization.organization_id)
-                session.add(row)
-            row.organization_id = organization.organization_id
-            row.name = str(item.get("name", rule_id))
-            row.event_types = [str(value).casefold() for value in item.get("events", [])]
-            row.source_ids = list(item.get("source_ids", []))
-            row.categories = list(item.get("categories", []))
-            row.brands = list(item.get("brands", []))
-            row.channel_ids = list(item.get("channel_ids", []))
-            row.minimum_price_change_percent = Decimal(str(item.get("minimum_price_change_percent", 0)))
-            row.frequency = str(item.get("frequency", "immediate")).casefold()
-            row.active = bool(item.get("active", True))
+            rule_row = session.get(NotificationRuleRow, rule_id)
+            if rule_row is None:
+                rule_row = NotificationRuleRow(rule_id=rule_id, organization_id=organization.organization_id)
+                session.add(rule_row)
+            rule_row.organization_id = organization.organization_id
+            rule_row.name = str(item.get("name", rule_id))
+            rule_row.event_types = [str(value).casefold() for value in item.get("events", [])]
+            rule_row.source_ids = list(item.get("source_ids", []))
+            rule_row.categories = list(item.get("categories", []))
+            rule_row.brands = list(item.get("brands", []))
+            rule_row.channel_ids = list(item.get("channel_ids", []))
+            rule_row.minimum_price_change_percent = Decimal(str(item.get("minimum_price_change_percent", 0)))
+            rule_row.frequency = str(item.get("frequency", "immediate")).casefold()
+            rule_row.active = bool(item.get("active", True))
 
     def save_run(
         self,
@@ -357,7 +357,7 @@ class ProductRepository:
         product.currency = item.currency or ""
         product.availability = item.availability.value
         product.quantity = item.quantity
-        product.rating = item.rating
+        product.rating = Decimal(str(item.rating)) if item.rating is not None else None
         product.review_count = item.review_count
         product.url = item.url
         product.image_url = item.image_url

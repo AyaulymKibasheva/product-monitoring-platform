@@ -10,4 +10,6 @@ htmlcov/
 test-temp-*/
 logs/*.log
 data/*.csv
+data/*.db
+data/*.json
 outputs/

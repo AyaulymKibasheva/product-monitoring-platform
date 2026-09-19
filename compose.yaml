@@ -1,0 +1,58 @@
+x-app: &app
+  build: .
+  restart: unless-stopped
+  environment: &app-environment
+    DATABASE_URL: postgresql+psycopg://product_monitor:product_monitor@postgres:5432/product_monitoring
+    SOURCE_CONFIG_PATH: config/sources.json
+    OUTPUT_PATH: data/products.csv
+    SCHEDULER_TIMEZONE: UTC
+    LOG_LEVEL: INFO
+  volumes:
+    - product_monitoring_data:/app/data
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: product_monitoring
+      POSTGRES_USER: product_monitor
+      POSTGRES_PASSWORD: product_monitor
+    volumes:
+      - product_monitoring_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U product_monitor -d product_monitoring"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    build: .
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    environment: *app-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  dashboard:
+    <<: *app
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  scheduler:
+    <<: *app
+    command: ["python", "main.py", "--scheduler"]
+
+volumes:
+  product_monitoring_pgdata:
+  product_monitoring_data:

@@ -72,7 +72,10 @@ def create_dashboard_app(engine: Engine, *, runner: PipelineRunner | None = None
         if scope not in {"organization", "source"}:
             return jsonify(error="scope must be organization or source"), 400
         try:
-            updated = service.update_settings(scope, identifier, request.get_json(silent=True))
+            payload = request.get_json(silent=True)
+            if not isinstance(payload, dict):
+                raise ValueError("settings must be an object")
+            updated = service.update_settings(scope, identifier, payload)
         except (TypeError, ValueError) as exc:
             return jsonify(error=str(exc)), 400
         return (jsonify(settings=updated), 200) if updated is not None else (jsonify(error="record not found"), 404)

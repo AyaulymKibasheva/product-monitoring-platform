@@ -14,6 +14,8 @@ The included adapters demonstrate three independent source types:
 
 All are safe demonstration sources, not the domain model of the platform.
 
+![Universal monitoring dashboard](docs/dashboard.png)
+
 Network sources support a per-source `delay_seconds` and/or
 `requests_per_second`; the stricter effective delay is applied between requests.
 `--all-sources` executes independent sources concurrently on PostgreSQL, while
@@ -22,15 +24,15 @@ one failure remains isolated from the others.
 ## Architecture
 
 ```text
-HTML / JavaScript / API / file adapters
-                  ↓
-        ProductSource contract
-                  ↓
-         Unified Product model
-                  ↓
-            Normalization
-                  ↓
-       PostgreSQL + CSV export
+Organizations → HTML / JavaScript / API / file adapters
+                            ↓
+                  ProductSource contract
+                            ↓
+       Normalize → Validate → Match → Change detection
+                            ↓
+                        PostgreSQL
+                   ↙         ↓         ↘
+          Notifications    Reports    Dashboard
 ```
 
 Adapters return a `SourceRunResult` containing normalized products and run
@@ -119,6 +121,11 @@ the canonical model, add its small factory entry, and declare the organization
 and source in `config/sources.json`. The application pipeline does not need
 source-specific changes.
 
+To add only a new enterprise, add an organization entry with its monitoring
+and notification policy, then point its source entries at an existing adapter.
+To support a new data format, create one adapter implementing `ProductSource`,
+register its factory in `src/sources/registry.py`, and add fixture-based tests.
+
 ## Reliability
 
 Requests have configurable connect/read timeouts and retries with exponential
@@ -170,6 +177,65 @@ Set `DATABASE_URL`, then start it with `python dashboard.py` and open
 `DASHBOARD_HOST` and `DASHBOARD_PORT`. Select a single source before using
 **Run source**. Settings are stored in PostgreSQL and apply independently to
 the selected organization or source.
+
+## Docker deployment
+
+Docker Compose starts PostgreSQL, applies Alembic migrations, serves the
+dashboard with Gunicorn, and runs the independent scheduler:
+
+```bash
+docker compose up --build -d
+docker compose ps
+```
+
+Open `http://localhost:8000`. Both PostgreSQL and dashboard have health checks;
+application services wait for a healthy database and a completed migration.
+Persistent database and export data use named Docker volumes. Stop services
+with `docker compose down`; add `-v` only when you intentionally want to erase
+all persisted data.
+
+Useful operations:
+
+```bash
+docker compose logs -f dashboard scheduler
+docker compose exec dashboard python main.py --source dummyjson-api --max-pages 1
+docker compose run --rm migrate alembic current
+```
+
+For local development without Docker, install `requirements.txt`, configure
+`DATABASE_URL`, apply `alembic upgrade head`, and run `python dashboard.py`.
+
+## Database migrations
+
+Alembic owns schema evolution. The initial revision creates organizations,
+sources, products, histories, runs, errors, matching/change events, notification
+rules, channels, and delivery history. Apply pending migrations with:
+
+```bash
+alembic upgrade head
+```
+
+Create future revisions only after changing the SQLAlchemy models, review the
+generated SQL, and commit the revision with the model change.
+
+## Continuous integration
+
+GitHub Actions runs on every pull request and push to `master`. It installs the
+locked Python dependencies, runs Ruff, checks types with Mypy, executes the
+complete test suite with branch coverage, validates Compose, and builds the
+production image. Run the same quality gate locally with:
+
+```bash
+ruff check .
+mypy src
+pytest
+docker compose config --quiet
+docker build -t product-monitoring-platform:test .
+```
+
+Runtime configuration is supplied through environment variables. Copy
+`.env.example` to `.env` for local use and never commit passwords, SMTP
+credentials, or Slack webhook URLs.
 
 ## Tests
 

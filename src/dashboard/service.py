@@ -81,7 +81,9 @@ class DashboardService:
                 .join(SourceRow)
                 .where(*run_filter)
             )
-            event_counts = dict(session.execute(event_stmt).all())
+            event_counts: dict[str, int] = {
+                change_type: count for change_type, count in session.execute(event_stmt)
+            }
             broken = 0
             for source in sources:
                 latest = session.scalar(
@@ -237,10 +239,17 @@ class DashboardService:
         for key in ("minimum_price_change", "minimum_price_change_percent"):
             if key in settings and float(settings[key]) < 0:
                 raise ValueError(f"{key} cannot be negative")
-        model = OrganizationRow if scope == "organization" else SourceRow
         with Session(self.engine) as session, session.begin():
-            row = session.get(model, identifier)
-            if row is None:
+            if scope == "organization":
+                organization = session.get(OrganizationRow, identifier)
+                if organization is None:
+                    return None
+                organization.monitoring_settings = settings
+            else:
+                source = session.get(SourceRow, identifier)
+                if source is None:
+                    return None
+                source.monitoring_settings = settings
+            if not identifier:
                 return None
-            row.monitoring_settings = settings
             return dict(settings)

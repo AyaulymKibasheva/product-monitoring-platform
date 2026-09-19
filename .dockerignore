@@ -1,0 +1,14 @@
+.git
+.github
+.idea
+.venv
+__pycache__
+.pytest_cache
+.coverage
+.env
+data
+logs
+node_modules
+outputs
+tests
+*.pyc
