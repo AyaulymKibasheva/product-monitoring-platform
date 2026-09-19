@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timedelta
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -19,9 +21,16 @@ def build_scheduler(
     catalog: SourceCatalog,
     *,
     timezone: str = "UTC",
-) -> BlockingScheduler:
-    scheduler = BlockingScheduler(timezone=timezone)
+    background: bool = False,
+    run_immediately: bool = False,
+) -> BlockingScheduler | BackgroundScheduler:
+    scheduler = (
+        BackgroundScheduler(timezone=timezone)
+        if background
+        else BlockingScheduler(timezone=timezone)
+    )
     registered = set(runner.registry.ids())
+    immediate_index = 0
     for source in catalog.sources:
         if source.source_id not in registered or not source.schedule:
             continue
@@ -35,7 +44,16 @@ def build_scheduler(
             max_instances=1,
             misfire_grace_time=300,
             replace_existing=True,
+            **(
+                {
+                    "next_run_time": datetime.now().astimezone()
+                    + timedelta(seconds=immediate_index * 3)
+                }
+                if run_immediately
+                else {}
+            ),
         )
+        immediate_index += 1
         LOGGER.info("Scheduled %s with %s", source.source_id, source.schedule)
     if runner.notifications:
         scheduler.add_job(

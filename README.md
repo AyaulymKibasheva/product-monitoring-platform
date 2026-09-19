@@ -105,6 +105,11 @@ alembic upgrade head
 python dashboard.py
 ```
 
+The local dashboard starts its background scheduler automatically. Active
+sources run once on startup (staggered by a few seconds) and then follow their
+individual cron schedules. In Docker Compose, `dashboard` and `scheduler` stay
+as separate services to avoid duplicate jobs in a multi-worker web server.
+
 The dashboard address defaults to [http://127.0.0.1:8000](http://127.0.0.1:8000).
 `DASHBOARD_HOST` and `DASHBOARD_PORT` can override it.
 

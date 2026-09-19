@@ -1,6 +1,7 @@
 """Start the product monitoring dashboard."""
 
 from src.application import PipelineRunner
+from src.application.scheduler import build_scheduler
 from src.config import Settings
 from src.dashboard import create_dashboard_app
 from src.database import create_database_engine, create_schema
@@ -17,8 +18,19 @@ def main() -> int:
     engine = create_database_engine(settings.database_url)
     create_schema(engine)
     runner = PipelineRunner(build_registry(catalog), catalog, engine=engine)
+    scheduler = build_scheduler(
+        runner,
+        catalog,
+        timezone=settings.scheduler_timezone,
+        background=True,
+        run_immediately=True,
+    )
+    scheduler.start()
     app = create_dashboard_app(engine, runner=runner, catalog_path=settings.source_config_path)
-    app.run(host=settings.dashboard_host, port=settings.dashboard_port)
+    try:
+        app.run(host=settings.dashboard_host, port=settings.dashboard_port)
+    finally:
+        scheduler.shutdown(wait=False)
     return 0
 
 
