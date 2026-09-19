@@ -38,6 +38,7 @@ def build_registry(catalog: SourceCatalog) -> SourceRegistry:
     """Instantiate active sources through a small explicit adapter factory."""
     from .html.books_demo import BooksDemoSource
     from .api.dummyjson import DummyJsonSource
+    from .api.bestbuy import BestBuySource
     from .javascript.scraping_sandbox import ScrapingSandboxSource
     from .file.catalog_file import CatalogFileSource
 
@@ -57,6 +58,17 @@ def build_registry(catalog: SourceCatalog) -> SourceRegistry:
             base_url=_required_url(definition),
             default_currency=definition.default_currency or "USD",
             page_size=int(definition.settings.get("page_size", 30)),
+            timeout_seconds=definition.timeout_seconds,
+            max_retries=definition.max_retries,
+            backoff_factor=definition.backoff_factor,
+            delay_seconds=definition.request_delay_seconds,
+        ),
+        "bestbuy": lambda definition: BestBuySource(
+            organization_id=definition.organization_id,
+            source_id=definition.source_id,
+            base_url=_required_url(definition),
+            api_key_env=str(definition.settings.get("api_key_env", "BESTBUY_API_KEY")),
+            page_size=int(definition.settings.get("page_size", 50)),
             timeout_seconds=definition.timeout_seconds,
             max_retries=definition.max_retries,
             backoff_factor=definition.backoff_factor,

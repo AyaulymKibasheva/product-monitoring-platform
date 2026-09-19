@@ -55,6 +55,22 @@
       "settings": {}
     },
     {
+      "id": "bestbuy-live",
+      "organization_id": "demo-organization",
+      "name": "Best Buy Live Products API",
+      "type": "api",
+      "adapter": "bestbuy",
+      "base_url": "https://api.bestbuy.com/v1/",
+      "default_currency": "USD",
+      "schedule": "20 */6 * * *",
+      "timeout_seconds": 15,
+      "max_retries": 3,
+      "backoff_factor": 0.5,
+      "requests_per_second": 2,
+      "active": false,
+      "settings": {"api_key_env": "BESTBUY_API_KEY", "page_size": 50}
+    },
+    {
       "id": "dummyjson-api",
       "organization_id": "demo-organization",
       "name": "DummyJSON REST API Demo",

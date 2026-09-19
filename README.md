@@ -114,6 +114,7 @@ The repository includes safe demonstration adapters:
 | --- | --- | --- |
 | Books to Scrape | HTML | Pagination and page parsing |
 | DummyJSON | REST API | Paginated structured data |
+| Best Buy Products API | Live retail API | Near-real-time prices and availability |
 | Scraping Sandbox | JavaScript | Browser-rendered infinite scrolling |
 | Supplier file | CSV/XML | Local or supplier catalogue ingestion |
 
@@ -125,6 +126,24 @@ python main.py --source dummyjson-api --max-pages 1
 python main.py --all-sources
 python main.py --scheduler
 ```
+
+### Connect the live Best Buy API
+
+Create a free developer key at [developer.bestbuy.com](https://developer.bestbuy.com/),
+put it in `.env`, and enable `bestbuy-live` in `config/sources.json`:
+
+```env
+BESTBUY_API_KEY=your_key_here
+```
+
+```bash
+python main.py --source bestbuy-live --max-pages 1
+```
+
+The key is read only from the environment. The adapter imports actual retail
+SKUs, regular and sale prices, online availability, brand, category, ratings,
+images, UPC, model, and color. The source is inactive by default so deployments
+without a key continue to work normally.
 
 Organizations and sources are declared in `config/sources.json`. Each source
 controls its adapter, type, URL, currency, schedule, timeout, retries, rate
