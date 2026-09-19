@@ -13,3 +13,5 @@ class Organization:
     name: str
     active: bool = True
     monitoring_settings: dict[str, Any] = field(default_factory=dict)
+    notification_rules: tuple[dict[str, Any], ...] = ()
+    notification_channels: tuple[dict[str, Any], ...] = ()

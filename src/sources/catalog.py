@@ -57,6 +57,8 @@ def _organization(raw: dict[str, Any]) -> Organization:
         name=_required(raw, "name"),
         active=bool(raw.get("active", True)),
         monitoring_settings=dict(raw.get("monitoring", {})),
+        notification_rules=tuple(dict(item) for item in raw.get("notification_rules", [])),
+        notification_channels=tuple(dict(item) for item in raw.get("notification_channels", [])),
     )
 
 
@@ -110,6 +112,34 @@ def _validate_catalog(
     if len(source_ids) != len(set(source_ids)):
         raise ValueError("duplicate source ID")
     known_organizations = set(organization_ids)
+    known_channel_ids: set[str] = set()
+    known_rule_ids: set[str] = set()
+    for organization in organizations:
+        organization_channels: set[str] = set()
+        for channel in organization.notification_channels:
+            channel_id = _required(channel, "id")
+            if channel_id in known_channel_ids:
+                raise ValueError("duplicate notification channel ID")
+            channel_type = _required(channel, "type").casefold()
+            if channel_type not in {"email", "slack"}:
+                raise ValueError(f"unsupported notification channel: {channel_type}")
+            known_channel_ids.add(channel_id)
+            organization_channels.add(channel_id)
+        for rule in organization.notification_rules:
+            rule_id = _required(rule, "id")
+            if rule_id in known_rule_ids:
+                raise ValueError("duplicate notification rule ID")
+            known_rule_ids.add(rule_id)
+            frequency = str(rule.get("frequency", "immediate")).casefold()
+            if frequency not in {"immediate", "hourly", "daily"}:
+                raise ValueError(f"unsupported notification frequency: {frequency}")
+            if float(rule.get("minimum_price_change_percent", 0)) < 0:
+                raise ValueError("minimum price change percent cannot be negative")
+            unknown_channels = set(rule.get("channel_ids", [])) - organization_channels
+            if unknown_channels:
+                raise ValueError(
+                    f"notification rule {rule_id!r} references unknown channels"
+                )
     for source in sources:
         if source.organization_id not in known_organizations:
             raise ValueError(

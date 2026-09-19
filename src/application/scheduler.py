@@ -37,6 +37,17 @@ def build_scheduler(
             replace_existing=True,
         )
         LOGGER.info("Scheduled %s with %s", source.source_id, source.schedule)
+    if runner.notifications:
+        scheduler.add_job(
+            runner.dispatch_notifications,
+            trigger="interval",
+            minutes=1,
+            id="notifications:pending",
+            name="Deliver pending notifications",
+            coalesce=True,
+            max_instances=1,
+            replace_existing=True,
+        )
     if not scheduler.get_jobs():
         raise ValueError("no active sources have a schedule")
     return scheduler

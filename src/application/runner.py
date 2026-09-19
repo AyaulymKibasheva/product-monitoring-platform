@@ -11,6 +11,7 @@ from pathlib import Path
 from sqlalchemy import Engine
 
 from src.database import ProductRepository, create_database_engine, create_schema
+from src.notifications import NotificationDispatcher
 from src.sources import SourceCatalog, SourceRegistry
 from src.utils.csv_writer import write_products_csv
 from src.utils.validation_writer import write_rejected_csv
@@ -53,11 +54,13 @@ class PipelineRunner:
         self.output_directory = output_directory
         self.validator = ProductValidator()
         self.repository: ProductRepository | None = None
+        self.notifications: NotificationDispatcher | None = None
         if database_url or engine is not None:
             database_engine = engine or create_database_engine(database_url or "")
             create_schema(database_engine)
             self.repository = ProductRepository(database_engine)
             self.repository.sync_catalog(catalog)
+            self.notifications = NotificationDispatcher(database_engine)
 
     def run(
         self,
@@ -82,6 +85,7 @@ class PipelineRunner:
                 run_id = self.repository.save_run(
                     source_result, validation, started_at=started_at
                 )
+                self._notify(run_id)
             finished_at = datetime.now(timezone.utc)
             status = "partial" if source_result.stats.errors else "success"
             outcome = RunOutcome(
@@ -117,6 +121,7 @@ class PipelineRunner:
                 run_id = self.repository.save_failed_run(
                     source_id, started_at=started_at, error=exc
                 )
+                self._notify(run_id)
             LOGGER.exception("Source %s failed: %s", source_id, exc)
             return RunOutcome(
                 source_id=source_id,
@@ -149,3 +154,14 @@ class PipelineRunner:
             and self.repository.engine.dialect.name == "sqlite"
             and self.repository.engine.url.database in {None, "", ":memory:"}
         )
+
+    def dispatch_notifications(self) -> int:
+        return self.notifications.dispatch_pending() if self.notifications else 0
+
+    def _notify(self, run_id: int) -> None:
+        if not self.notifications:
+            return
+        try:
+            self.notifications.process_run(run_id)
+        except Exception:
+            LOGGER.exception("Notification processing failed for run %s", run_id)

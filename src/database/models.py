@@ -201,3 +201,47 @@ class ProductChangeEventRow(Base):
     absolute_difference: Mapped[Decimal | None] = mapped_column(Numeric(18, 4))
     percentage_change: Mapped[Decimal | None] = mapped_column(Numeric(12, 4))
     observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
+class NotificationRuleRow(Base):
+    __tablename__ = "notification_rules"
+    rule_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.organization_id"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    event_types: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    source_ids: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    categories: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    brands: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    channel_ids: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    minimum_price_change_percent: Mapped[Decimal] = mapped_column(Numeric(12, 4), nullable=False, default=0)
+    frequency: Mapped[str] = mapped_column(String(30), nullable=False, default="immediate")
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class NotificationChannelRow(Base):
+    __tablename__ = "notification_channels"
+    channel_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    organization_id: Mapped[str] = mapped_column(ForeignKey("organizations.organization_id"), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    channel_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    recipient: Mapped[str | None] = mapped_column(String(500))
+    settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class NotificationDeliveryRow(Base):
+    __tablename__ = "notification_deliveries"
+    __table_args__ = (UniqueConstraint("event_key", "rule_id", "channel_id", name="uq_notification_delivery"),)
+    delivery_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    event_key: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    run_id: Mapped[int] = mapped_column(ForeignKey("scrape_runs.run_id"), nullable=False)
+    rule_id: Mapped[str] = mapped_column(ForeignKey("notification_rules.rule_id"), nullable=False)
+    channel_id: Mapped[str] = mapped_column(ForeignKey("notification_channels.channel_id"), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="pending")
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    next_attempt_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_error: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

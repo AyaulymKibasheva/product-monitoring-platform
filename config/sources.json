@@ -7,7 +7,35 @@
       "monitoring": {
         "minimum_price_change": 0,
         "minimum_price_change_percent": 0
-      }
+      },
+      "notification_channels": [
+        {
+          "id": "demo-email",
+          "name": "Operations email",
+          "type": "email",
+          "recipient": "alerts@example.com",
+          "active": false,
+          "settings": {"host_env": "SMTP_HOST", "sender_env": "SMTP_FROM"}
+        },
+        {
+          "id": "demo-slack",
+          "name": "Operations Slack",
+          "type": "slack",
+          "active": false,
+          "settings": {"webhook_env": "SLACK_WEBHOOK_URL"}
+        }
+      ],
+      "notification_rules": [
+        {
+          "id": "demo-important-events",
+          "name": "Important product and source events",
+          "events": ["price_drop", "price_increase", "new_product", "back_in_stock", "out_of_stock", "product_missing", "source_failed", "data_quality_problem"],
+          "channel_ids": ["demo-email", "demo-slack"],
+          "minimum_price_change_percent": 5,
+          "frequency": "immediate",
+          "active": false
+        }
+      ]
     }
   ],
   "sources": [

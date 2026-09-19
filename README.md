@@ -140,6 +140,24 @@ filters include `--organization`, `--source`, `--category`, `--brand`,
 `node scripts/build_excel_report.mjs data/report.json <report.xlsx> <preview-dir>`.
 PostgreSQL remains the source of truth; the report is a reproducible view.
 
+## Notifications
+
+Stage 13 adds organization-specific notification rules and Email/Slack delivery.
+Rules can filter by event type, source, category, brand, and minimum percentage
+price change. Delivery can be immediate, hourly, or daily. Every delivery is
+stored in PostgreSQL, de-duplicated by event/rule/channel, and retried with
+exponential backoff without interrupting product collection.
+
+Configure `notification_channels` and `notification_rules` inside an
+organization in `config/sources.json`. The included examples are deliberately
+inactive. To enable them, set `active` to `true`, replace the example email,
+and set the corresponding SMTP or Slack variables in `.env`. Credentials and
+webhook URLs must stay in environment variables; do not put secrets in JSON.
+Supported event names are `price_drop`, `price_increase`, `new_product`,
+`back_in_stock`, `out_of_stock`, `product_missing`, `source_failed`, and
+`data_quality_problem`. The scheduler checks queued and retryable deliveries
+once per minute.
+
 ## Tests
 
 Run `pytest`. Tests use local HTML fixtures and mocked HTTP responses; they do

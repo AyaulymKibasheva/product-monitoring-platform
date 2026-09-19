@@ -22,6 +22,8 @@ from .models import (
     ProductMatchEventRow,
     ProductRow,
     ProductSourceLinkRow,
+    NotificationChannelRow,
+    NotificationRuleRow,
     ScrapeErrorRow,
     ScrapeRunRow,
     SourceRow,
@@ -45,6 +47,7 @@ class ProductRepository:
                 row.name = item.name
                 row.active = item.active
                 row.monitoring_settings = item.monitoring_settings
+                self._sync_notification_configuration(session, item)
 
             for item in catalog.sources:
                 row = session.get(SourceRow, item.source_id)
@@ -76,6 +79,37 @@ class ProductRepository:
                     row.last_success_at = item.last_success_at
                 row.settings = item.settings
                 row.monitoring_settings = item.monitoring_settings
+
+    @staticmethod
+    def _sync_notification_configuration(session: Session, organization) -> None:
+        for item in organization.notification_channels:
+            channel_id = str(item["id"])
+            row = session.get(NotificationChannelRow, channel_id)
+            if row is None:
+                row = NotificationChannelRow(channel_id=channel_id, organization_id=organization.organization_id)
+                session.add(row)
+            row.organization_id = organization.organization_id
+            row.name = str(item.get("name", channel_id))
+            row.channel_type = str(item["type"]).casefold()
+            row.recipient = item.get("recipient")
+            row.settings = dict(item.get("settings", {}))
+            row.active = bool(item.get("active", True))
+        for item in organization.notification_rules:
+            rule_id = str(item["id"])
+            row = session.get(NotificationRuleRow, rule_id)
+            if row is None:
+                row = NotificationRuleRow(rule_id=rule_id, organization_id=organization.organization_id)
+                session.add(row)
+            row.organization_id = organization.organization_id
+            row.name = str(item.get("name", rule_id))
+            row.event_types = [str(value).casefold() for value in item.get("events", [])]
+            row.source_ids = list(item.get("source_ids", []))
+            row.categories = list(item.get("categories", []))
+            row.brands = list(item.get("brands", []))
+            row.channel_ids = list(item.get("channel_ids", []))
+            row.minimum_price_change_percent = Decimal(str(item.get("minimum_price_change_percent", 0)))
+            row.frequency = str(item.get("frequency", "immediate")).casefold()
+            row.active = bool(item.get("active", True))
 
     def save_run(
         self,
