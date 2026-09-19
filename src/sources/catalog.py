@@ -80,6 +80,12 @@ def _source(raw: dict[str, Any]) -> SourceDefinition:
         timeout_seconds=float(raw.get("timeout_seconds", 10)),
         max_retries=int(raw.get("max_retries", 3)),
         backoff_factor=float(raw.get("backoff_factor", 0.5)),
+        delay_seconds=float(raw.get("delay_seconds", 0)),
+        requests_per_second=(
+            float(raw["requests_per_second"])
+            if raw.get("requests_per_second") is not None
+            else None
+        ),
         active=bool(raw.get("active", True)),
         last_success_at=last_success,
         settings=dict(raw.get("settings", {})),
@@ -114,3 +120,7 @@ def _validate_catalog(
             raise ValueError(f"source {source.source_id!r} timeout must be positive")
         if source.max_retries < 0 or source.backoff_factor < 0:
             raise ValueError(f"source {source.source_id!r} retry settings are invalid")
+        if source.delay_seconds < 0 or (
+            source.requests_per_second is not None and source.requests_per_second <= 0
+        ):
+            raise ValueError(f"source {source.source_id!r} rate settings are invalid")

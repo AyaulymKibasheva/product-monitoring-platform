@@ -10,8 +10,14 @@ The included adapters demonstrate three independent source types:
 - Books to Scrape — static HTML with pagination;
 - DummyJSON — paginated REST API;
 - Scraping Sandbox — JavaScript-rendered infinite scroll through Playwright.
+- Supplier file demo — configurable CSV catalogue (the same adapter supports XML).
 
 All are safe demonstration sources, not the domain model of the platform.
+
+Network sources support a per-source `delay_seconds` and/or
+`requests_per_second`; the stricter effective delay is applied between requests.
+`--all-sources` executes independent sources concurrently on PostgreSQL, while
+one failure remains isolated from the others.
 
 ## Architecture
 

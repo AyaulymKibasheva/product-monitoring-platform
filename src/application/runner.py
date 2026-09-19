@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -126,8 +127,25 @@ class PipelineRunner:
                 error=str(exc),
             )
 
-    def run_all(self, *, max_pages: int | None = None) -> list[RunOutcome]:
-        return [
-            self.run(source_id, max_pages=max_pages)
-            for source_id in self.registry.ids()
-        ]
+    def run_all(
+        self, *, max_pages: int | None = None, max_workers: int = 4
+    ) -> list[RunOutcome]:
+        source_ids = self.registry.ids()
+        if len(source_ids) < 2 or self._uses_memory_sqlite():
+            return [self.run(source_id, max_pages=max_pages) for source_id in source_ids]
+        with ThreadPoolExecutor(
+            max_workers=min(max_workers, len(source_ids)),
+            thread_name_prefix="source",
+        ) as executor:
+            futures = {
+                source_id: executor.submit(self.run, source_id, max_pages=max_pages)
+                for source_id in source_ids
+            }
+            return [futures[source_id].result() for source_id in source_ids]
+
+    def _uses_memory_sqlite(self) -> bool:
+        return bool(
+            self.repository
+            and self.repository.engine.dialect.name == "sqlite"
+            and self.repository.engine.url.database in {None, "", ":memory:"}
+        )

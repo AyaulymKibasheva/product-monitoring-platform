@@ -48,6 +48,8 @@ class SourceRow(Base):
     timeout_seconds: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False, default=10)
     max_retries: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
     backoff_factor: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False, default=0.5)
+    delay_seconds: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False, default=0)
+    requests_per_second: Mapped[Decimal | None] = mapped_column(Numeric(10, 3))
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)

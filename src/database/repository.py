@@ -65,6 +65,12 @@ class ProductRepository:
                 row.timeout_seconds = Decimal(str(item.timeout_seconds))
                 row.max_retries = item.max_retries
                 row.backoff_factor = Decimal(str(item.backoff_factor))
+                row.delay_seconds = Decimal(str(item.delay_seconds))
+                row.requests_per_second = (
+                    Decimal(str(item.requests_per_second))
+                    if item.requests_per_second is not None
+                    else None
+                )
                 row.active = item.active
                 if item.last_success_at is not None:
                     row.last_success_at = item.last_success_at

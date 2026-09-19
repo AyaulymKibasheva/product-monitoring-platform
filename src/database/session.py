@@ -19,6 +19,8 @@ def create_schema(engine: Engine) -> None:
             "ALTER TABLE sources ADD COLUMN IF NOT EXISTS timeout_seconds NUMERIC(10,3) NOT NULL DEFAULT 10",
             "ALTER TABLE sources ADD COLUMN IF NOT EXISTS max_retries INTEGER NOT NULL DEFAULT 3",
             "ALTER TABLE sources ADD COLUMN IF NOT EXISTS backoff_factor NUMERIC(10,3) NOT NULL DEFAULT 0.5",
+            "ALTER TABLE sources ADD COLUMN IF NOT EXISTS delay_seconds NUMERIC(10,3) NOT NULL DEFAULT 0",
+            "ALTER TABLE sources ADD COLUMN IF NOT EXISTS requests_per_second NUMERIC(10,3)",
             "ALTER TABLE sources ADD COLUMN IF NOT EXISTS monitoring_settings JSONB NOT NULL DEFAULT '{}'::jsonb",
         )
         with engine.begin() as connection:

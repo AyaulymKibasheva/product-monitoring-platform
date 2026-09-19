@@ -55,6 +55,22 @@
       "backoff_factor": 0.5,
       "active": true,
       "settings": {"scroll_wait_ms": 3000, "headless": true}
+    },
+    {
+      "id": "supplier-file-demo",
+      "organization_id": "demo-organization",
+      "name": "Supplier CSV File Demo",
+      "type": "file",
+      "adapter": "catalog_file",
+      "default_currency": "USD",
+      "schedule": "45 */12 * * *",
+      "active": true,
+      "settings": {
+        "path": "examples/supplier_products.csv",
+        "format": "csv",
+        "page_size": 100,
+        "attribute_fields": ["material", "weight"]
+      }
     }
   ]
 }

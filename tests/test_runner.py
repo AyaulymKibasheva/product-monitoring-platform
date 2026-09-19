@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+import threading
+import time
 
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
@@ -101,3 +103,31 @@ def test_single_success_returns_counts_and_duration(tmp_path) -> None:
     assert outcome.accepted == 1
     assert outcome.duration_seconds >= 0
 
+
+def test_run_all_executes_independent_sources_in_parallel(tmp_path) -> None:
+    class SlowSource(SuccessfulSource):
+        def __init__(self, source_id):
+            self.source_id = source_id
+
+        def collect(self, *, max_pages=None):
+            barrier.wait(timeout=2)
+            time.sleep(0.05)
+            result = super().collect(max_pages=max_pages)
+            product = result.products[0]
+            object.__setattr__(product, "source_id", self.source_id)
+            return SourceRunResult("org", self.source_id, [product], result.stats)
+
+    barrier = threading.Barrier(2)
+    sources = [SlowSource("a"), SlowSource("b")]
+    catalog = SourceCatalog(
+        organizations=(Organization("org", "Organization"),),
+        sources=(
+            SourceDefinition("a", "org", "A", SourceType.API, "fake"),
+            SourceDefinition("b", "org", "B", SourceType.API, "fake"),
+        ),
+    )
+    runner = PipelineRunner(SourceRegistry(sources), catalog, output_directory=tmp_path)
+
+    outcomes = runner.run_all(max_workers=2)
+
+    assert [item.status for item in outcomes] == ["success", "success"]

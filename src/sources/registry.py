@@ -39,6 +39,7 @@ def build_registry(catalog: SourceCatalog) -> SourceRegistry:
     from .html.books_demo import BooksDemoSource
     from .api.dummyjson import DummyJsonSource
     from .javascript.scraping_sandbox import ScrapingSandboxSource
+    from .file.catalog_file import CatalogFileSource
 
     factories = {
         "books_demo": lambda definition: BooksDemoSource(
@@ -48,6 +49,7 @@ def build_registry(catalog: SourceCatalog) -> SourceRegistry:
             timeout_seconds=definition.timeout_seconds,
             max_retries=definition.max_retries,
             backoff_factor=definition.backoff_factor,
+            delay_seconds=definition.request_delay_seconds,
         ),
         "dummyjson": lambda definition: DummyJsonSource(
             organization_id=definition.organization_id,
@@ -58,6 +60,7 @@ def build_registry(catalog: SourceCatalog) -> SourceRegistry:
             timeout_seconds=definition.timeout_seconds,
             max_retries=definition.max_retries,
             backoff_factor=definition.backoff_factor,
+            delay_seconds=definition.request_delay_seconds,
         ),
         "scraping_sandbox": lambda definition: ScrapingSandboxSource(
             organization_id=definition.organization_id,
@@ -68,6 +71,19 @@ def build_registry(catalog: SourceCatalog) -> SourceRegistry:
             max_retries=definition.max_retries,
             scroll_wait_ms=int(definition.settings.get("scroll_wait_ms", 3000)),
             headless=bool(definition.settings.get("headless", True)),
+            delay_seconds=definition.request_delay_seconds,
+        ),
+        "catalog_file": lambda definition: CatalogFileSource(
+            organization_id=definition.organization_id,
+            source_id=definition.source_id,
+            path=definition.settings["path"],
+            default_currency=definition.default_currency,
+            file_format=definition.settings.get("format"),
+            delimiter=definition.settings.get("delimiter", ","),
+            record_path=definition.settings.get("record_path", ".//product"),
+            field_mapping=dict(definition.settings.get("field_mapping", {})),
+            attribute_fields=list(definition.settings.get("attribute_fields", [])),
+            page_size=int(definition.settings.get("page_size", 1000)),
         ),
     }
     adapters: list[ProductSource] = []

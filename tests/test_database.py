@@ -155,6 +155,8 @@ def test_catalog_sync_persists_runtime_and_monitoring_settings() -> None:
         assert source.timeout_seconds == Decimal("7.000")
         assert source.max_retries == 4
         assert source.backoff_factor == Decimal("1.500")
+        assert source.delay_seconds == Decimal("0.000")
+        assert source.requests_per_second is None
         assert source.monitoring_settings == {"minimum_price_change": 5}
 
 

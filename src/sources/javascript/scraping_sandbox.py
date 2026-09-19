@@ -12,6 +12,7 @@ from playwright.sync_api import sync_playwright
 
 from src.normalization import normalize_product
 from src.sources.base import ProductSource, SourceRunResult, SourceRunStats
+from src.sources.rate_limit import RequestPacer
 
 LOGGER = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ class ScrapingSandboxSource(ProductSource):
         max_retries: int = 2,
         scroll_wait_ms: int = 3000,
         headless: bool = True,
+        delay_seconds: float = 0.0,
     ) -> None:
         self.organization_id = organization_id
         self.source_id = source_id
@@ -37,6 +39,7 @@ class ScrapingSandboxSource(ProductSource):
         self.max_retries = max_retries
         self.scroll_wait_ms = scroll_wait_ms
         self.headless = headless
+        self.pacer = RequestPacer(delay_seconds)
 
     def collect(self, *, max_pages: int | None = None) -> SourceRunResult:
         html, batches, complete = self._render(max_pages)
@@ -50,6 +53,7 @@ class ScrapingSandboxSource(ProductSource):
                     browser = playwright.chromium.launch(headless=self.headless)
                     try:
                         page = browser.new_page()
+                        self.pacer.wait()
                         page.goto(
                             self.base_url,
                             wait_until="networkidle",
@@ -62,6 +66,7 @@ class ScrapingSandboxSource(ProductSource):
                         complete = False
                         while max_pages is None or batches < max_pages:
                             previous_count = page.locator(".product-card").count()
+                            self.pacer.wait()
                             page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
                             try:
                                 page.wait_for_function(

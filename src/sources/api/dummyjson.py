@@ -13,6 +13,7 @@ import requests
 from src.normalization import normalize_product
 from src.scraper.base import create_retrying_session
 from src.sources.base import ProductSource, SourceRunResult, SourceRunStats
+from src.sources.rate_limit import RequestPacer
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,6 +31,7 @@ class DummyJsonSource(ProductSource):
         max_retries: int = 3,
         backoff_factor: float = 0.5,
         session: requests.Session | None = None,
+        delay_seconds: float = 0.0,
     ) -> None:
         self.organization_id = organization_id
         self.source_id = source_id
@@ -38,6 +40,7 @@ class DummyJsonSource(ProductSource):
         self.page_size = page_size
         self.timeout_seconds = timeout_seconds
         self.session = session or create_retrying_session(max_retries, backoff_factor)
+        self.pacer = RequestPacer(delay_seconds)
 
     def collect(self, *, max_pages: int | None = None) -> SourceRunResult:
         products = []
@@ -48,6 +51,7 @@ class DummyJsonSource(ProductSource):
         while total is None or skip < total:
             if max_pages is not None and stats.pages_fetched >= max_pages:
                 break
+            self.pacer.wait()
             response = self.session.get(
                 urljoin(self.base_url, "products"),
                 params={"limit": self.page_size, "skip": skip},
@@ -120,4 +124,3 @@ class DummyJsonSource(ProductSource):
             attributes=attributes,
             collected_at=collected_at,
         )
-

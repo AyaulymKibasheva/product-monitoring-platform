@@ -1,0 +1,3 @@
+external_id,sku,name,brand,category,price,currency,availability,quantity,rating,review_count,url,image_url,material,weight
+SUP-001,ACME-001,Industrial Safety Gloves,Acme Industrial,Safety,24.90,USD,in stock,120,4.6,38,https://supplier.example/products/SUP-001,https://supplier.example/images/SUP-001.jpg,Nitrile,0.5 kg
+SUP-002,NORTH-020,Portable Work Light,North Tools,Lighting,89.00,USD,out of stock,0,4.2,15,https://supplier.example/products/SUP-002,https://supplier.example/images/SUP-002.jpg,Aluminium,1.2 kg

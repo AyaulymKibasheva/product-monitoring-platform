@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup, Tag
 from src.normalization import normalize_product
 from src.scraper.base import create_retrying_session
 from src.sources.base import ProductSource, SourceRunResult, SourceRunStats
+from src.sources.rate_limit import RequestPacer
 
 LOGGER = logging.getLogger(__name__)
 RATING_VALUES = {"One": 1, "Two": 2, "Three": 3, "Four": 4, "Five": 5}
@@ -28,12 +29,14 @@ class BooksDemoSource(ProductSource):
         max_retries: int = 3,
         backoff_factor: float = 0.5,
         session: requests.Session | None = None,
+        delay_seconds: float = 0.0,
     ) -> None:
         self.organization_id = organization_id
         self.source_id = source_id
         self.base_url = base_url.rstrip("/") + "/"
         self.timeout_seconds = timeout_seconds
         self.session = session or create_retrying_session(max_retries, backoff_factor)
+        self.pacer = RequestPacer(delay_seconds)
 
     def collect(self, *, max_pages: int | None = None) -> SourceRunResult:
         products = []
@@ -75,6 +78,7 @@ class BooksDemoSource(ProductSource):
         )
 
     def _fetch_soup(self, url: str) -> BeautifulSoup:
+        self.pacer.wait()
         response = self.session.get(url, timeout=self.timeout_seconds)
         response.raise_for_status()
         return BeautifulSoup(response.content, "html.parser")

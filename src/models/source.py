@@ -28,7 +28,14 @@ class SourceDefinition:
     timeout_seconds: float = 10.0
     max_retries: int = 3
     backoff_factor: float = 0.5
+    delay_seconds: float = 0.0
+    requests_per_second: float | None = None
     active: bool = True
     last_success_at: datetime | None = None
     settings: dict[str, Any] = field(default_factory=dict)
     monitoring_settings: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def request_delay_seconds(self) -> float:
+        rate_delay = 1 / self.requests_per_second if self.requests_per_second else 0.0
+        return max(self.delay_seconds, rate_delay)
