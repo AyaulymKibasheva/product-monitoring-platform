@@ -10,6 +10,7 @@ from typing import Any
 
 from src.models import Organization, SourceDefinition, SourceType
 from src.normalization import normalize_datetime
+from src.monitoring import ChangePolicy
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +29,12 @@ class SourceCatalog:
             if source.source_id == source_id:
                 return source
         raise ValueError(f"unknown source definition: {source_id}")
+
+    def change_policy(self, source_id: str) -> ChangePolicy:
+        source = self.source(source_id)
+        organization = self.organization(source.organization_id)
+        settings = {**organization.monitoring_settings, **source.monitoring_settings}
+        return ChangePolicy.from_mapping(settings)
 
 
 def load_source_catalog(path: Path) -> SourceCatalog:
@@ -49,6 +56,7 @@ def _organization(raw: dict[str, Any]) -> Organization:
         organization_id=_required(raw, "id"),
         name=_required(raw, "name"),
         active=bool(raw.get("active", True)),
+        monitoring_settings=dict(raw.get("monitoring", {})),
     )
 
 
@@ -75,6 +83,7 @@ def _source(raw: dict[str, Any]) -> SourceDefinition:
         active=bool(raw.get("active", True)),
         last_success_at=last_success,
         settings=dict(raw.get("settings", {})),
+        monitoring_settings=dict(raw.get("monitoring", {})),
     )
 
 
@@ -105,4 +114,3 @@ def _validate_catalog(
             raise ValueError(f"source {source.source_id!r} timeout must be positive")
         if source.max_retries < 0 or source.backoff_factor < 0:
             raise ValueError(f"source {source.source_id!r} retry settings are invalid")
-

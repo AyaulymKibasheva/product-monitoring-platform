@@ -29,6 +29,7 @@ class OrganizationRow(Base):
     organization_id: Mapped[str] = mapped_column(String(100), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    monitoring_settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
 
 class SourceRow(Base):
@@ -44,9 +45,13 @@ class SourceRow(Base):
     base_url: Mapped[str | None] = mapped_column(Text)
     default_currency: Mapped[str | None] = mapped_column(String(3))
     schedule: Mapped[str | None] = mapped_column(String(255))
+    timeout_seconds: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False, default=10)
+    max_retries: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    backoff_factor: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False, default=0.5)
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    monitoring_settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
 
 
 class ProductRow(Base):

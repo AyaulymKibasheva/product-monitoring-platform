@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from src.matching import MatchCandidate, ProductMatcher
 from src.models import Product
-from src.monitoring import ChangeEvent, ChangeType, ProductSnapshot, detect_changes
+from src.monitoring import ChangeEvent, ChangePolicy, ChangeType, ProductSnapshot, detect_changes
 from src.sources import SourceCatalog, SourceRunResult
 from src.validation import ProductValidationResult
 
@@ -32,8 +32,10 @@ class ProductRepository:
     def __init__(self, engine: Engine, matcher: ProductMatcher | None = None) -> None:
         self.engine = engine
         self.matcher = matcher or ProductMatcher()
+        self._catalog: SourceCatalog | None = None
 
     def sync_catalog(self, catalog: SourceCatalog) -> None:
+        self._catalog = catalog
         with Session(self.engine) as session, session.begin():
             for item in catalog.organizations:
                 row = session.get(OrganizationRow, item.organization_id)
@@ -42,6 +44,7 @@ class ProductRepository:
                     session.add(row)
                 row.name = item.name
                 row.active = item.active
+                row.monitoring_settings = item.monitoring_settings
 
             for item in catalog.sources:
                 row = session.get(SourceRow, item.source_id)
@@ -59,10 +62,14 @@ class ProductRepository:
                 row.base_url = item.base_url
                 row.default_currency = item.default_currency
                 row.schedule = item.schedule
+                row.timeout_seconds = Decimal(str(item.timeout_seconds))
+                row.max_retries = item.max_retries
+                row.backoff_factor = Decimal(str(item.backoff_factor))
                 row.active = item.active
                 if item.last_success_at is not None:
                     row.last_success_at = item.last_success_at
                 row.settings = item.settings
+                row.monitoring_settings = item.monitoring_settings
 
     def save_run(
         self,
@@ -277,7 +284,9 @@ class ProductRepository:
             product = link.product
             previous = self._previous_snapshot(session, product, item.source_id)
             if previous is not None:
-                for event in detect_changes(previous, item):
+                for event in detect_changes(
+                    previous, item, self._change_policy(item.source_id)
+                ):
                     self._add_change(
                         session, run_id, product.product_id, item, event
                     )
@@ -369,14 +378,16 @@ class ProductRepository:
             attributes=product.attributes,
         )
 
-    @staticmethod
     def _add_change(
+        self,
         session: Session,
         run_id: int,
         product_id: int,
         item: Product,
         event: ChangeEvent,
     ) -> None:
+        if not self._change_policy(item.source_id).allows(event):
+            return
         session.add(
             ProductChangeEventRow(
                 run_id=run_id,
@@ -391,6 +402,13 @@ class ProductRepository:
                 percentage_change=event.percentage_change,
                 observed_at=item.collected_at,
             )
+        )
+
+    def _change_policy(self, source_id: str) -> ChangePolicy:
+        return (
+            self._catalog.change_policy(source_id)
+            if self._catalog is not None
+            else ChangePolicy()
         )
 
     @staticmethod
@@ -434,16 +452,24 @@ class ProductRepository:
                 == ChangeType.PRODUCT_MISSING.value
             ):
                 continue
+            event = ChangeEvent(
+                ChangeType.PRODUCT_MISSING,
+                "presence",
+                "present",
+                "missing",
+            )
+            if not self._change_policy(source_id).allows(event):
+                continue
             session.add(
                 ProductChangeEventRow(
                     run_id=run_id,
                     product_id=link.product_id,
                     source_id=source_id,
                     external_id=link.external_id,
-                    change_type=ChangeType.PRODUCT_MISSING.value,
-                    field="presence",
-                    old_value="present",
-                    new_value="missing",
+                    change_type=event.change_type.value,
+                    field=event.field,
+                    old_value=event.old_value,
+                    new_value=event.new_value,
                     observed_at=observed_at,
                 )
             )

@@ -17,7 +17,11 @@ def test_loads_organizations_and_independent_source_settings(tmp_path) -> None:
         tmp_path,
         {
             "organizations": [
-                {"id": "org-a", "name": "Company A"},
+                {
+                    "id": "org-a",
+                    "name": "Company A",
+                    "monitoring": {"minimum_price_change_percent": 5},
+                },
                 {"id": "org-b", "name": "Company B", "active": False},
             ],
             "sources": [
@@ -31,6 +35,7 @@ def test_loads_organizations_and_independent_source_settings(tmp_path) -> None:
                     "timeout_seconds": 7,
                     "max_retries": 2,
                     "settings": {"locale": "en"},
+                    "monitoring": {"minimum_price_change": 10},
                 },
                 {
                     "id": "catalog-b",
@@ -52,6 +57,9 @@ def test_loads_organizations_and_independent_source_settings(tmp_path) -> None:
     assert source.timeout_seconds == 7
     assert source.max_retries == 2
     assert source.settings == {"locale": "en"}
+    policy = catalog.change_policy("catalog-a")
+    assert policy.minimum_price_change == 10
+    assert policy.minimum_price_change_percent == 5
     assert build_registry(catalog).ids() == ("catalog-a",)
 
 
@@ -95,4 +103,3 @@ def test_rejects_duplicate_source_ids(tmp_path) -> None:
 
     with pytest.raises(ValueError, match="duplicate source ID"):
         load_source_catalog(path)
-

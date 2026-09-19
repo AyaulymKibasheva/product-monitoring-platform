@@ -31,4 +31,4 @@ class SourceDefinition:
     active: bool = True
     last_success_at: datetime | None = None
     settings: dict[str, Any] = field(default_factory=dict)
-
+    monitoring_settings: dict[str, Any] = field(default_factory=dict)

@@ -36,6 +36,12 @@ source has its own adapter, type, URL, currency, schedule, timeout, retry policy
 enabled status, and adapter-specific settings. Disabling an organization also
 disables all of its sources without changing application code.
 
+Monitoring significance can be configured per organization and overridden per
+source with `minimum_price_change`, `minimum_price_change_percent`, and an
+optional `enabled_events` list. Source-specific rules take precedence. Runtime
+timeouts, retries, backoff, and monitoring rules are persisted with the source
+registry in PostgreSQL.
+
 Before export, every normalized product passes through `ProductValidator`.
 Valid products go to the main CSV; rejected records and their individual error
 codes go to a neighboring `*.rejected.csv` data-quality report. Duplicate

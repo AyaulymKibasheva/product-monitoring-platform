@@ -36,6 +36,25 @@ def catalog() -> SourceCatalog:
     )
 
 
+def monitored_catalog(*, minimum_price_change: int) -> SourceCatalog:
+    return SourceCatalog(
+        organizations=(Organization("org", "Company"),),
+        sources=(
+            SourceDefinition(
+                source_id="source",
+                organization_id="org",
+                name="Source",
+                source_type=SourceType.API,
+                adapter="fake",
+                timeout_seconds=7,
+                max_retries=4,
+                backoff_factor=1.5,
+                monitoring_settings={"minimum_price_change": minimum_price_change},
+            ),
+        ),
+    )
+
+
 def product(
     price: str = "10.00",
     *,
@@ -123,6 +142,46 @@ def test_catalog_sync_preserves_runtime_last_success() -> None:
 
     with Session(engine) as session:
         assert session.get(SourceRow, "source").last_success_at is not None
+
+
+def test_catalog_sync_persists_runtime_and_monitoring_settings() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    create_schema(engine)
+    repository = ProductRepository(engine)
+    repository.sync_catalog(monitored_catalog(minimum_price_change=5))
+
+    with Session(engine) as session:
+        source = session.get(SourceRow, "source")
+        assert source.timeout_seconds == Decimal("7.000")
+        assert source.max_retries == 4
+        assert source.backoff_factor == Decimal("1.500")
+        assert source.monitoring_settings == {"minimum_price_change": 5}
+
+
+def test_repository_ignores_price_change_below_source_threshold() -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    create_schema(engine)
+    repository = ProductRepository(engine)
+    repository.sync_catalog(monitored_catalog(minimum_price_change=2))
+
+    for price in ("10.00", "9.00"):
+        item = product(price)
+        result = SourceRunResult(
+            "org", "source", [item], SourceRunStats(records_found=1, records_processed=1)
+        )
+        repository.save_run(
+            result,
+            ProductValidator().validate_batch([item]),
+            started_at=datetime.now(timezone.utc),
+        )
+
+    with Session(engine) as session:
+        price_events = session.scalar(
+            select(func.count()).select_from(ProductChangeEventRow).where(
+                ProductChangeEventRow.change_type.in_(["price_drop", "price_increase"])
+            )
+        )
+        assert price_events == 0
 
 
 def test_cross_source_same_sku_links_to_one_product() -> None:

@@ -29,6 +29,42 @@ class ChangeType(StrEnum):
 
 
 @dataclass(frozen=True, slots=True)
+class ChangePolicy:
+    """Organization/source rules defining which changes are significant."""
+
+    minimum_price_change: Decimal = Decimal("0")
+    minimum_price_change_percent: Decimal = Decimal("0")
+    enabled_events: frozenset[ChangeType] | None = None
+
+    @classmethod
+    def from_mapping(cls, value: dict | None) -> ChangePolicy:
+        value = value or {}
+        raw_events = value.get("enabled_events")
+        events = (
+            frozenset(ChangeType(item) for item in raw_events)
+            if raw_events is not None
+            else None
+        )
+        minimum = Decimal(str(value.get("minimum_price_change", 0)))
+        percentage = Decimal(str(value.get("minimum_price_change_percent", 0)))
+        if minimum < 0 or percentage < 0:
+            raise ValueError("monitoring price thresholds must be non-negative")
+        return cls(minimum, percentage, events)
+
+    def allows(self, event: ChangeEvent) -> bool:
+        if self.enabled_events is not None and event.change_type not in self.enabled_events:
+            return False
+        if event.change_type in {ChangeType.PRICE_DROP, ChangeType.PRICE_INCREASE}:
+            absolute = abs(event.absolute_difference or Decimal("0"))
+            percentage = abs(event.percentage_change or Decimal("0"))
+            return (
+                absolute >= self.minimum_price_change
+                and percentage >= self.minimum_price_change_percent
+            )
+        return True
+
+
+@dataclass(frozen=True, slots=True)
 class ProductSnapshot:
     name: str
     category: str | None
@@ -49,7 +85,11 @@ class ChangeEvent:
     percentage_change: Decimal | None = None
 
 
-def detect_changes(previous: ProductSnapshot, current: Product) -> list[ChangeEvent]:
+def detect_changes(
+    previous: ProductSnapshot,
+    current: Product,
+    policy: ChangePolicy | None = None,
+) -> list[ChangeEvent]:
     events: list[ChangeEvent] = []
     if previous.price != current.price:
         difference = current.price - previous.price
@@ -113,7 +153,8 @@ def detect_changes(previous: ProductSnapshot, current: Product) -> list[ChangeEv
                 _json(current.attributes),
             )
         )
-    return events
+    active_policy = policy or ChangePolicy()
+    return [event for event in events if active_policy.allows(event)]
 
 
 def _text_change(

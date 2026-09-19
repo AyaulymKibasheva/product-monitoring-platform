@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 from src.models import Availability, Product
-from src.monitoring import ChangeType, ProductSnapshot, detect_changes
+from src.monitoring import ChangePolicy, ChangeType, ProductSnapshot, detect_changes
 
 
 def current_product() -> Product:
@@ -66,3 +66,26 @@ def test_detects_back_in_stock_and_metadata_changes() -> None:
     assert ChangeType.BRAND_CHANGED in types
     assert ChangeType.ATTRIBUTES_CHANGED in types
 
+
+def test_change_policy_filters_small_price_changes_and_disabled_events() -> None:
+    previous = ProductSnapshot(
+        name="Old name",
+        category="New category",
+        brand="Brand",
+        price=Decimal("100"),
+        currency="USD",
+        availability=Availability.IN_STOCK,
+        attributes={"color": "blue"},
+    )
+    policy = ChangePolicy.from_mapping(
+        {
+            "minimum_price_change": 25,
+            "minimum_price_change_percent": 10,
+            "enabled_events": ["price_drop", "name_changed"],
+        }
+    )
+
+    types = {item.change_type for item in detect_changes(previous, current_product(), policy)}
+
+    assert ChangeType.PRICE_DROP not in types
+    assert types == {ChangeType.NAME_CHANGED}

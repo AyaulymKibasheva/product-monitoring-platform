@@ -3,7 +3,11 @@
     {
       "id": "demo-organization",
       "name": "Demonstration Organization",
-      "active": true
+      "active": true,
+      "monitoring": {
+        "minimum_price_change": 0,
+        "minimum_price_change_percent": 0
+      }
     }
   ],
   "sources": [
