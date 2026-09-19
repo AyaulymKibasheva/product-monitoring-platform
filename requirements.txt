@@ -1,0 +1,10 @@
+beautifulsoup4==4.12.3
+APScheduler==3.11.0
+python-dotenv==1.0.1
+requests==2.32.3
+SQLAlchemy==2.0.39
+psycopg[binary]==3.2.6
+playwright==1.63.0
+pytest==8.3.5
+pytest-cov==6.0.0
+responses==0.25.7

@@ -1,0 +1,56 @@
+{
+  "organizations": [
+    {
+      "id": "demo-organization",
+      "name": "Demonstration Organization",
+      "active": true
+    }
+  ],
+  "sources": [
+    {
+      "id": "books-demo",
+      "organization_id": "demo-organization",
+      "name": "Books to Scrape HTML Demo",
+      "type": "html",
+      "adapter": "books_demo",
+      "base_url": "https://books.toscrape.com/",
+      "default_currency": "GBP",
+      "schedule": "0 */6 * * *",
+      "timeout_seconds": 10,
+      "max_retries": 3,
+      "backoff_factor": 0.5,
+      "active": true,
+      "settings": {}
+    },
+    {
+      "id": "dummyjson-api",
+      "organization_id": "demo-organization",
+      "name": "DummyJSON REST API Demo",
+      "type": "api",
+      "adapter": "dummyjson",
+      "base_url": "https://dummyjson.com/",
+      "default_currency": "USD",
+      "schedule": "15 */6 * * *",
+      "timeout_seconds": 10,
+      "max_retries": 3,
+      "backoff_factor": 0.5,
+      "active": true,
+      "settings": {"page_size": 30}
+    },
+    {
+      "id": "sandbox-js",
+      "organization_id": "demo-organization",
+      "name": "Scraping Sandbox JavaScript Demo",
+      "type": "javascript",
+      "adapter": "scraping_sandbox",
+      "base_url": "https://scrapingsandbox.com/infinite-scroll",
+      "default_currency": "USD",
+      "schedule": "30 */12 * * *",
+      "timeout_seconds": 30,
+      "max_retries": 2,
+      "backoff_factor": 0.5,
+      "active": true,
+      "settings": {"scroll_wait_ms": 3000, "headless": true}
+    }
+  ]
+}

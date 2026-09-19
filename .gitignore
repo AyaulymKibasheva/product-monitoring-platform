@@ -1,6 +1,13 @@
 .idea/
 .venv/
+node_modules/
 __pycache__/
-*.pyc
+*.py[cod]
 .env
+.pytest_cache/
+.coverage
+htmlcov/
+test-temp-*/
 logs/*.log
+data/*.csv
+outputs/
