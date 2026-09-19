@@ -12,4 +12,4 @@ if not settings.database_url:
 catalog = load_source_catalog(settings.source_config_path)
 engine = create_database_engine(settings.database_url)
 runner = PipelineRunner(build_registry(catalog), catalog, engine=engine)
-app = create_dashboard_app(engine, runner=runner)
+app = create_dashboard_app(engine, runner=runner, catalog_path=settings.source_config_path)

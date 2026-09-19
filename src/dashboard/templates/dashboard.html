@@ -13,6 +13,7 @@
       <button class="nav active" data-view="products">Overview</button>
       <button class="nav" data-view="runs">Runs</button>
       <button class="nav" data-view="errors">Errors</button>
+      <button class="nav" data-view="sources">Add source</button>
       <button class="nav" data-view="settings">Settings</button>
     </nav>
     <div class="system"><i></i> System connected</div>
@@ -20,7 +21,7 @@
   <main>
     <header>
       <div><p class="eyebrow">UNIVERSAL OPERATIONS CONSOLE</p><h1>Monitoring dashboard</h1></div>
-      <div class="actions"><button id="export" class="secondary">Export report</button><button id="run" class="primary">Run source</button></div>
+      <div class="actions"><button id="export-csv" class="secondary">CSV</button><button id="export-xlsx" class="secondary">Excel</button><button id="run" class="primary">Run source</button></div>
     </header>
     <section class="filters">
       <select id="organization"><option value="">All organizations</option></select>
@@ -36,9 +37,30 @@
     </section>
     <section class="panel hidden" id="runs-view"><div class="panel-title"><div><p class="eyebrow">ACTIVITY</p><h2>Run history</h2></div></div><div class="table-wrap"><table><thead><tr><th>Source</th><th>Status</th><th>Started</th><th>Duration</th><th>Found</th><th>Accepted</th><th>Errors</th></tr></thead><tbody id="runs"></tbody></table></div></section>
     <section class="panel hidden" id="errors-view"><div class="panel-title"><div><p class="eyebrow">DIAGNOSTICS</p><h2>Errors</h2></div></div><div class="table-wrap"><table><thead><tr><th>Time</th><th>Source</th><th>Stage</th><th>Code</th><th>Message</th></tr></thead><tbody id="errors"></tbody></table></div></section>
+    <section class="panel hidden" id="sources-view">
+      <div class="panel-title"><div><p class="eyebrow">SOURCE WIZARD</p><h2>Connect an HTML shop</h2></div></div>
+      <p class="muted">Enter catalogue pages and CSS selectors. The source is saved only after a successful live test.</p>
+      <form id="source-form" class="source-form">
+        <label>Organization<select id="new-organization" required><option value="">Select organization</option></select></label>
+        <label>Source ID<input id="new-id" placeholder="client-shop" pattern="[a-z0-9][a-z0-9-]{1,62}" required></label>
+        <label>Display name<input id="new-name" placeholder="Client shop" required></label>
+        <label>Currency<select id="new-currency"><option>USD</option><option>EUR</option><option>GBP</option><option>KZT</option><option>RUB</option></select></label>
+        <label class="wide">Catalogue URLs, one per line<textarea id="new-urls" placeholder="https://shop.example/catalog" required></textarea></label>
+        <label>Product card selector<input id="sel-item" placeholder=".product-card" required></label>
+        <label>Name selector<input id="sel-name" placeholder=".product-title" required></label>
+        <label>Price selector<input id="sel-price" placeholder=".price" required></label>
+        <label>Link selector<input id="sel-url" placeholder="a.product-link" required></label>
+        <label>Rating selector<input id="sel-rating" placeholder=".rating"></label>
+        <label>Availability selector<input id="sel-availability" placeholder=".stock"></label>
+        <label>Category selector<input id="sel-category" placeholder=".category"></label>
+        <label>Brand selector<input id="sel-brand" placeholder=".brand"></label>
+        <label>Schedule (cron)<input id="new-schedule" value="0 */6 * * *"></label>
+        <div class="wide form-actions"><button class="primary" type="submit">Test and connect</button><span id="source-result" class="muted"></span></div>
+      </form>
+    </section>
     <section class="panel hidden" id="settings-view"><div class="panel-title"><div><p class="eyebrow">POLICY</p><h2>Monitoring settings</h2></div></div><p class="muted">Select an organization or source, edit its JSON policy, then save.</p><textarea id="settings-json" spellcheck="false">{}</textarea><button id="save-settings" class="primary">Save settings</button></section>
   </main>
-  <dialog id="history"><button class="close" aria-label="Close">×</button><p class="eyebrow">PRODUCT TIMELINE</p><h2 id="history-title"></h2><div id="history-body"></div></dialog>
+  <dialog id="history"><button class="close" aria-label="Close">×</button><p class="eyebrow">PRODUCT TIMELINE</p><h2 id="history-title"></h2><div id="price-chart"></div><div id="history-body"></div></dialog>
   <div id="toast"></div>
   <script src="{{ url_for('static', filename='dashboard.js') }}"></script>
 </body>

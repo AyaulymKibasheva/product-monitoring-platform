@@ -1,12 +1,17 @@
 from datetime import datetime, timezone
 from decimal import Decimal
+import json
+
+import responses
 
 from sqlalchemy import create_engine
 
 from src.dashboard import create_dashboard_app
+from src.application import PipelineRunner
 from src.database import ProductRepository, create_schema
 from src.models import Availability, Organization, Product, SourceDefinition, SourceType
 from src.sources import SourceCatalog, SourceRunResult, SourceRunStats
+from src.sources import SourceRegistry
 from src.validation import ProductValidator
 
 
@@ -71,7 +76,15 @@ def test_dashboard_runs_errors_export_and_manual_run_guard() -> None:
     export = client.get("/api/export?organization=org")
     assert export.status_code == 200
     assert export.headers["Content-Disposition"].endswith("monitoring-report.json")
+    csv_export = client.get("/api/export/csv?organization=org")
+    assert csv_export.status_code == 200
+    assert csv_export.headers["Content-Disposition"].endswith("products.csv")
+    xlsx_export = client.get("/api/export/xlsx?organization=org")
+    assert xlsx_export.status_code == 200
+    assert xlsx_export.data.startswith(b"PK")
+    assert client.get("/api/export/pdf").status_code == 400
     assert client.post("/api/sources/api/run").status_code == 503
+    assert client.post("/api/sources", json={}).status_code == 503
 
 
 def test_dashboard_updates_monitoring_settings() -> None:
@@ -89,3 +102,53 @@ def test_dashboard_updates_monitoring_settings() -> None:
     ).status_code == 400
     assert client.put("/api/settings/invalid/org", json={}).status_code == 400
     assert client.put("/api/settings/source/missing", json={}).status_code == 404
+
+
+@responses.activate
+def test_dashboard_tests_and_connects_configurable_source(tmp_path) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    create_schema(engine)
+    catalog = SourceCatalog(
+        organizations=(Organization("org", "Acme Company"),), sources=()
+    )
+    runner = PipelineRunner(SourceRegistry(), catalog, engine=engine)
+    path = tmp_path / "sources.json"
+    path.write_text(
+        json.dumps({"organizations": [{"id": "org", "name": "Acme Company"}], "sources": []}),
+        encoding="utf-8",
+    )
+    responses.get(
+        "https://shop.test/catalog",
+        body='<div class="product"><a href="/p/1"><b>Widget</b></a><i>$10</i></div>',
+    )
+    app = create_dashboard_app(engine, runner=runner, catalog_path=path)
+    app.config["TESTING"] = True
+    client = app.test_client()
+    response = client.post(
+        "/api/sources",
+        json={
+            "id": "client-shop",
+            "organization_id": "org",
+            "name": "Client Shop",
+            "page_urls": ["https://shop.test/catalog"],
+            "selectors": {"item": ".product", "name": "b", "price": "i", "url": "a"},
+        },
+    )
+    assert response.status_code == 201
+    assert response.json == {"source_id": "client-shop", "products_found": 1}
+    assert "client-shop" in runner.registry.ids()
+    assert json.loads(path.read_text(encoding="utf-8"))["sources"][0]["adapter"] == "configurable_html"
+
+
+def test_dashboard_rejects_invalid_source_configuration(tmp_path) -> None:
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    create_schema(engine)
+    catalog = SourceCatalog(organizations=(Organization("org", "Acme"),), sources=())
+    runner = PipelineRunner(SourceRegistry(), catalog, engine=engine)
+    path = tmp_path / "sources.json"
+    path.write_text('{"organizations":[{"id":"org","name":"Acme"}],"sources":[]}', encoding="utf-8")
+    app = create_dashboard_app(engine, runner=runner, catalog_path=path)
+    app.config["TESTING"] = True
+    response = app.test_client().post("/api/sources", json={"id": "BAD ID"})
+    assert response.status_code == 400
+    assert "ID must" in response.json["error"]

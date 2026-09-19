@@ -37,6 +37,7 @@ class SourceRegistry:
 def build_registry(catalog: SourceCatalog) -> SourceRegistry:
     """Instantiate active sources through a small explicit adapter factory."""
     from .html.books_demo import BooksDemoSource
+    from .html.configurable import ConfigurableHtmlSource
     from .api.dummyjson import DummyJsonSource
     from .api.bestbuy import BestBuySource
     from .api.steam import SteamStoreSource
@@ -48,6 +49,18 @@ def build_registry(catalog: SourceCatalog) -> SourceRegistry:
             organization_id=definition.organization_id,
             source_id=definition.source_id,
             base_url=_required_url(definition),
+            timeout_seconds=definition.timeout_seconds,
+            max_retries=definition.max_retries,
+            backoff_factor=definition.backoff_factor,
+            delay_seconds=definition.request_delay_seconds,
+        ),
+        "configurable_html": lambda definition: ConfigurableHtmlSource(
+            organization_id=definition.organization_id,
+            source_id=definition.source_id,
+            base_url=_required_url(definition),
+            page_urls=list(definition.settings.get("page_urls", [definition.base_url])),
+            selectors=dict(definition.settings.get("selectors", {})),
+            default_currency=definition.default_currency,
             timeout_seconds=definition.timeout_seconds,
             max_retries=definition.max_retries,
             backoff_factor=definition.backoff_factor,

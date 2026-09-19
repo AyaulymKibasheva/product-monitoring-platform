@@ -27,6 +27,8 @@ shared by every enterprise and data source.
 - Price, availability, product appearance, disappearance, and recovery events
 - Email and Slack notifications with filters, schedules, retries, and deduplication
 - Excel-ready report datasets with organization, source, category, and period filters
+- Dashboard source wizard for connecting server-rendered HTML catalogues with CSS selectors
+- Direct CSV and XLSX downloads plus an interactive product price chart
 - Responsive web dashboard with search, history, errors, manual runs, and settings
 - PostgreSQL persistence, Alembic migrations, Docker Compose, and GitHub Actions
 
@@ -180,6 +182,21 @@ limits, active status, and adapter-specific settings.
 
 No dashboard, database, reporting, or notification code needs source-specific
 changes.
+
+### Connect an HTML shop from the dashboard
+
+Open **Add source**, enter one or more catalogue URLs and the CSS selectors for
+the product card, name, price, and product link. Optional selectors support
+rating, availability, category, and brand. The wizard performs a live one-page
+test first and saves the source only when at least one valid product is found.
+
+This configurable adapter is intended for server-rendered catalogue pages.
+Websites that require authentication, CAPTCHA handling, or application-specific
+JavaScript still need a dedicated adapter. Always confirm that collection is
+allowed by the website's terms and robots policy.
+
+Select a product row to open its price chart. Use the **CSV** and **Excel**
+buttons to download the currently filtered product dataset.
 
 ## Data and change history
 

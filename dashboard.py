@@ -17,7 +17,7 @@ def main() -> int:
     engine = create_database_engine(settings.database_url)
     create_schema(engine)
     runner = PipelineRunner(build_registry(catalog), catalog, engine=engine)
-    app = create_dashboard_app(engine, runner=runner)
+    app = create_dashboard_app(engine, runner=runner, catalog_path=settings.source_config_path)
     app.run(host=settings.dashboard_host, port=settings.dashboard_port)
     return 0
 
