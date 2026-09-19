@@ -19,6 +19,14 @@ jobs:
         run: ruff check .
       - name: Type check
         run: mypy src
+      - name: Collect tests
+        run: pytest --collect-only -q --no-cov
+      - name: Core tests
+        run: pytest -q --no-cov tests/test_normalization.py tests/test_validation.py tests/test_change_detection.py tests/test_matching.py
+      - name: Source adapter tests
+        run: pytest -q --no-cov tests/test_books_scraper.py tests/test_dummyjson_source.py tests/test_file_source.py tests/test_javascript_source.py tests/test_source_registry.py tests/test_source_catalog.py
+      - name: Persistence and feature tests
+        run: pytest -q --no-cov tests/test_database.py tests/test_runner.py tests/test_scheduler.py tests/test_reports.py tests/test_notifications.py tests/test_dashboard.py
       - name: Tests
         run: pytest
       - name: Validate Compose
