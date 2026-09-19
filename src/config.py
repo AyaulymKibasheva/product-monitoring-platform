@@ -18,6 +18,8 @@ class Settings:
     database_url: str | None = None
     scheduler_timezone: str = "UTC"
     log_level: str = "INFO"
+    dashboard_host: str = "127.0.0.1"
+    dashboard_port: int = 8000
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -37,4 +39,6 @@ class Settings:
                 "SCHEDULER_TIMEZONE", defaults.scheduler_timezone
             ),
             log_level=os.getenv("LOG_LEVEL", defaults.log_level),
+            dashboard_host=os.getenv("DASHBOARD_HOST", defaults.dashboard_host),
+            dashboard_port=int(os.getenv("DASHBOARD_PORT", str(defaults.dashboard_port))),
         )

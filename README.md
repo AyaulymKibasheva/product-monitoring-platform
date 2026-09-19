@@ -158,6 +158,19 @@ Supported event names are `price_drop`, `price_increase`, `new_product`,
 `data_quality_problem`. The scheduler checks queued and retryable deliveries
 once per minute.
 
+## Dashboard
+
+Stage 14 provides one responsive web interface for all organizations and source
+types. It shows platform totals, source health, product search and filters,
+price and availability timelines, run history, errors, manual source runs,
+report export, and organization/source monitoring settings.
+
+Set `DATABASE_URL`, then start it with `python dashboard.py` and open
+`http://127.0.0.1:8000`. The bind address and port can be changed with
+`DASHBOARD_HOST` and `DASHBOARD_PORT`. Select a single source before using
+**Run source**. Settings are stored in PostgreSQL and apply independently to
+the selected organization or source.
+
 ## Tests
 
 Run `pytest`. Tests use local HTML fixtures and mocked HTTP responses; they do
